@@ -1,0 +1,24 @@
+modLoader="javafml"
+loaderVersion="[4,)"
+license="MIT"
+
+[[mods]]
+modId="thefallen"
+version="1.0.0"
+displayName="The Fallen"
+description="''"
+authors="Glow"
+
+[[dependencies.thefallen]]
+    modId="neoforge"
+    type="required"
+    version="[21.1,)"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.thefallen]]
+    modId="minecraft"
+    type="required"
+    version="[1.21.1,1.22)"
+    ordering="NONE"
+    side="BOTH"

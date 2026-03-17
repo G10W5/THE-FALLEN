@@ -1,0 +1,22 @@
+{
+  "display": {
+    "icon": {
+      "id": "minecraft:ender_eye"
+    },
+    "title": {
+      "text": "Stalked"
+    },
+    "description": {
+      "text": "The Observer has noticed you."
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "stalked_by_mod": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

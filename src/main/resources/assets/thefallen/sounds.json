@@ -1,0 +1,23 @@
+{
+  "whisper": {
+    "category": "hostile",
+    "subtitle": "subtitles.thefallen.whisper",
+    "sounds": [ "minecraft:ambient/cave/cave1", "minecraft:ambient/cave/cave2" ]
+  },
+  "scream": {
+    "category": "hostile",
+    "sounds": [ "minecraft:entity/ghast/scream" ]
+  },
+  "glitch_place": {
+    "category": "block",
+    "sounds": [ "minecraft:block/anvil/land" ]
+  },
+  "humming": {
+    "category": "hostile",
+    "sounds": [ { "name": "minecraft:ambient/cave/cave10", "pitch": 0.5 } ]
+  },
+  "world_enter": {
+    "category": "records",
+    "sounds": [ "thefallen:world_enter" ]
+  }
+}
