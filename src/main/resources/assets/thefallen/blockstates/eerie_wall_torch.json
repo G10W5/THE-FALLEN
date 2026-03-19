@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=east":  { "model": "thefallen:block/eerie_wall_torch", "y": 90  },
+    "facing=south": { "model": "thefallen:block/eerie_wall_torch", "y": 180 },
+    "facing=west":  { "model": "thefallen:block/eerie_wall_torch", "y": 270 },
+    "facing=north": { "model": "thefallen:block/eerie_wall_torch"            }
+  }
+}

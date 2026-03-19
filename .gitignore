@@ -40,3 +40,5 @@ src/generated/resources/
 *.flat
 /bin/
 /out/
+tmp/
+*.exe

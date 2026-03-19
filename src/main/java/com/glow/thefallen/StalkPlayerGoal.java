@@ -25,8 +25,8 @@ public class StalkPlayerGoal extends Goal {
     private int tickCount = 0;
 
     private static final double STALK_RANGE = 64.0D;
-    private static final float MIN_DIST = 30.0F;
-    private static final float MAX_DIST = 40.0F;
+    private static final float MIN_DIST = 40.0F;
+    private static final float MAX_DIST = 55.0F;
 
     public StalkPlayerGoal(TheFallenEntity mob) {
         this.mob = mob;
@@ -130,12 +130,12 @@ public class StalkPlayerGoal extends Goal {
     }
 
     /**
-     * Echo Footsteps: Play stone.step sounds 5 blocks behind the player.
+     * Echo Footsteps: Play custom step sounds 5 blocks behind the player.
      */
     private void echoFootsteps() {
         Vec3 behind = target.position().subtract(target.getLookAngle().scale(5));
         mob.level().playSound(null, behind.x, behind.y, behind.z,
-                SoundEvents.STONE_STEP, SoundSource.HOSTILE, 0.8F, 0.7F);
+                ModSounds.ECHO_STEP.get(), SoundSource.HOSTILE, 0.8F, 0.7F);
     }
 
     /**
@@ -180,7 +180,7 @@ public class StalkPlayerGoal extends Goal {
      */
     private void teleportBehindPlayer() {
         Vec3 lookAngle = target.getLookAngle();
-        Vec3 teleportPos = target.position().subtract(lookAngle.scale(15));
+        Vec3 teleportPos = target.position().subtract(lookAngle.scale(25));
         
         BlockPos groundPos = mob.level().getHeightmapPos(
                 net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
@@ -235,7 +235,7 @@ public class StalkPlayerGoal extends Goal {
             mob.level().addFreshEntity(fallingBlock);
             
             // Creepy sound at the drop source
-            mob.level().playSound(null, dropPos.getX(), dropPos.getY(), dropPos.getZ(), net.minecraft.sounds.SoundEvents.ZOMBIE_BREAK_WOODEN_DOOR, net.minecraft.sounds.SoundSource.HOSTILE, 1.0F, 0.5F);
+            mob.level().playSound(null, dropPos.getX(), dropPos.getY(), dropPos.getZ(), ModSounds.ROOF_CRACK.get(), net.minecraft.sounds.SoundSource.HOSTILE, 1.0F, 0.5F);
         }
     }
 }

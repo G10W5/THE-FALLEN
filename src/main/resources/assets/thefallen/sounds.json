@@ -2,11 +2,12 @@
   "whisper": {
     "category": "hostile",
     "subtitle": "subtitles.thefallen.whisper",
-    "sounds": [ "minecraft:ambient/cave/cave1", "minecraft:ambient/cave/cave2" ]
+    "sounds": [ "thefallen:whisper" ]
   },
   "scream": {
     "category": "hostile",
-    "sounds": [ "minecraft:entity/ghast/scream" ]
+    "subtitle": "subtitles.thefallen.scream",
+    "sounds": [ "thefallen:scream" ]
   },
   "glitch_place": {
     "category": "block",
@@ -14,10 +15,66 @@
   },
   "humming": {
     "category": "hostile",
-    "sounds": [ { "name": "minecraft:ambient/cave/cave10", "pitch": 0.5 } ]
+    "subtitle": "subtitles.thefallen.humming",
+    "sounds": [ "thefallen:humming" ]
   },
   "world_enter": {
     "category": "records",
     "sounds": [ "thefallen:world_enter" ]
+  },
+  "roof_crack": {
+    "category": "hostile",
+    "subtitle": "subtitles.thefallen.roof_crack",
+    "sounds": [ "thefallen:roof_crack" ]
+  },
+  "sunrise_vanish": {
+    "category": "hostile",
+    "subtitle": "subtitles.thefallen.sunrise_vanish",
+    "sounds": [ "thefallen:sunrise_vanish" ]
+  },
+  "echo_step": {
+    "category": "hostile",
+    "subtitle": "subtitles.thefallen.echo_step",
+    "sounds": [ "thefallen:echo_step" ]
+  },
+  "glitch_explosion": {
+    "category": "hostile",
+    "subtitle": "subtitles.thefallen.glitch_explosion",
+    "sounds": [ "thefallen:glitch_explosion" ]
+  },
+  "phantom_step": {
+    "category": "hostile",
+    "subtitle": "subtitles.thefallen.phantom_step",
+    "sounds": [ "minecraft:entity/player/footstep1", "minecraft:entity/player/footstep2", "minecraft:entity/player/footstep3", "minecraft:entity/player/footstep4" ]
+  },
+  "mimicry_eat": {
+    "category": "hostile",
+    "sounds": [
+      { "name": "minecraft:entity/player/eat1", "pitch": 0.5 },
+      { "name": "minecraft:entity/player/eat2", "pitch": 0.5 }
+    ]
+  },
+  "mimicry_chest": {
+    "category": "hostile",
+    "sounds": [
+      { "name": "minecraft:block/chest/open1", "pitch": 0.5 }
+    ]
+  },
+  "mimicry_hurt": {
+    "category": "hostile",
+    "sounds": [
+      { "name": "minecraft:entity/player/hurt1", "pitch": 0.5 },
+      { "name": "minecraft:entity/player/hurt2", "pitch": 0.5 }
+    ]
+  },
+  "fake_death": {
+    "category": "hostile",
+    "subtitle": "subtitles.thefallen.fake_death",
+    "sounds": [ "thefallen:scream" ]
+  },
+  "resurrection": {
+    "category": "hostile",
+    "subtitle": "subtitles.thefallen.resurrection",
+    "sounds": [ "thefallen:humming" ]
   }
 }

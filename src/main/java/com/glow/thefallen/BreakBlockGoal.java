@@ -36,6 +36,7 @@ public class BreakBlockGoal extends Goal {
     @Override
     public boolean canUse() {
         if (!mob.isHunting()) return false;
+        if (mob.isRecovering) return false;
         if (!mob.horizontalCollision) return false;
         if (mob.getTarget() == null) return false;
         return mob.distanceToSqr(mob.getTarget()) < 100.0D; // Within 10 blocks
@@ -43,15 +44,15 @@ public class BreakBlockGoal extends Goal {
 
     @Override
     public boolean canContinueToUse() {
-        return mob.isHunting() && breakTime < breakDuration;
+        return mob.isHunting() && !mob.isRecovering && breakTime < breakDuration;
     }
 
     @Override
     public void start() {
         this.breakTime = 0;
         this.lastBreakProgress = -1;
-        // Randomize break duration: 10-20 ticks for much faster, aggressive breaching
-        this.breakDuration = 10 + mob.getRandom().nextInt(11);
+        // Instant aggression: break in ~6 ticks (0.3 seconds)
+        this.breakDuration = 6;
     }
 
     @Override
@@ -86,10 +87,14 @@ public class BreakBlockGoal extends Goal {
                 if (!level.isClientSide) {
                     FallingBlockEntity fallingBlock = FallingBlockEntity.fall(level, targetPos, state);
                     if (fallingBlock != null) {
-                        fallingBlock.setDeltaMovement(0, 0.5, 0);
-                        fallingBlock.setHurtsEntities(0.0F, 0); // Don't hurt
-                        fallingBlock.dropItem = false;
-                        fallingBlock.time = 560; // Despawns when it exceeds 600 (approx 2 seconds)
+                        java.util.Random rng = new java.util.Random();
+                        fallingBlock.setDeltaMovement(
+                            (rng.nextDouble() - 0.5) * 0.4,
+                            0.4 + rng.nextDouble() * 0.2,
+                            (rng.nextDouble() - 0.5) * 0.4);
+                        fallingBlock.setHurtsEntities(0.0F, 0);
+                        fallingBlock.dropItem = false;    // Never drop as item
+                        fallingBlock.time = 600;          // Despawn age threshold — block vanishes instantly
                         level.addFreshEntity(fallingBlock);
                     }
                 }

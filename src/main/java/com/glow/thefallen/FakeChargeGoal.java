@@ -70,24 +70,12 @@ public class FakeChargeGoal extends Goal {
 
         // Scream
         mob.level().playSound(null, mob.getX(), mob.getY(), mob.getZ(),
-                SoundEvents.ENDERMAN_SCREAM, SoundSource.HOSTILE, 2.0F, 0.5F);
+                ModSounds.SCREAM.get(), SoundSource.HOSTILE, 2.0F, 0.5F);
 
         // Rotate the player's camera to face the entity (server-side teleport trick with same pos)
+        // Rotate the player's camera to face the entity
         if (target instanceof net.minecraft.server.level.ServerPlayer serverPlayer) {
-            Vec3 toMob = mob.getEyePosition().subtract(serverPlayer.getEyePosition()).normalize();
-
-            // Compute yaw / pitch toward the mob
-            double dx = toMob.x;
-            double dy = toMob.y;
-            double dz = toMob.z;
-            float yaw   = (float)(Math.toDegrees(Math.atan2(-dx, dz)));
-            float pitch = (float)(Math.toDegrees(-Math.asin(dy / Math.sqrt(dx*dx + dy*dy + dz*dz))));
-
-            serverPlayer.teleportTo(
-                serverPlayer.serverLevel(),
-                serverPlayer.getX(), serverPlayer.getY(), serverPlayer.getZ(),
-                yaw, pitch
-            );
+            serverPlayer.lookAt(net.minecraft.commands.arguments.EntityAnchorArgument.Anchor.EYES, mob.getEyePosition());
         }
     }
 
@@ -123,9 +111,11 @@ public class FakeChargeGoal extends Goal {
         hasVanished = true;
         charging = false;
 
-        // Poof sound
-        mob.level().playSound(null, mob.getX(), mob.getY(), mob.getZ(),
-                SoundEvents.GENERIC_EXPLODE, SoundSource.HOSTILE, 1.0F, 2.0F);
+        // Poof sound centered on the player so it's loud
+        if (target != null) {
+            mob.level().playSound(null, target.getX(), target.getY(), target.getZ(),
+                    ModSounds.GLITCH_EXPLOSION.get(), SoundSource.HOSTILE, 3.0F, 2.0F);
+        }
 
         // Damage + status effects
         if (target != null && target.isAlive()) {
