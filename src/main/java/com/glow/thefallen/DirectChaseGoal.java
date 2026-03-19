@@ -197,18 +197,21 @@ public class DirectChaseGoal extends Goal {
         // BRIDGING over air gaps: ONLY when stuck AND player is at roughly same Y level (not climbing terrain)
         Vec3 moveDir = target.position().subtract(mob.position()).normalize();
         if (mob.onGround() || mob.isInWater()) {
-            BlockPos aheadFeet = BlockPos.containing(
-                mob.getX() + moveDir.x * 2.0, mob.getY() - 1.0, mob.getZ() + moveDir.z * 2.0);
-            BlockState aheadState = mob.level().getBlockState(aheadFeet);
+            BlockPos pos1 = BlockPos.containing(mob.getX() + moveDir.x * 1.0, mob.getY() - 1.0, mob.getZ() + moveDir.z * 1.0);
+            BlockPos pos2 = BlockPos.containing(mob.getX() + moveDir.x * 2.0, mob.getY() - 1.0, mob.getZ() + moveDir.z * 2.0);
+            
+            for (BlockPos aheadFeet : new BlockPos[]{pos1, pos2}) {
+                BlockState aheadState = mob.level().getBlockState(aheadFeet);
 
-            if (aheadState.liquid()) {
-                // Always bridge over water/lava
-                mob.level().setBlockAndUpdate(aheadFeet, ModBlocks.EERIE_COBBLESTONE.get().defaultBlockState());
-                mob.level().playSound(null, aheadFeet, SoundEvents.STONE_PLACE, SoundSource.HOSTILE, 0.6F, 1.0F);
-            } else if ((directMode || mob.horizontalCollision) && aheadState.isAir() && Math.abs(yDiff) < 2.0) {
-                // Bridge over air gaps when stuck OR bumping into terrain at same Y level
-                mob.level().setBlockAndUpdate(aheadFeet, ModBlocks.EERIE_COBBLESTONE.get().defaultBlockState());
-                mob.level().playSound(null, aheadFeet, SoundEvents.STONE_PLACE, SoundSource.HOSTILE, 0.6F, 1.0F);
+                if (aheadState.liquid()) {
+                    // Always bridge over water/lava
+                    mob.level().setBlockAndUpdate(aheadFeet, ModBlocks.EERIE_COBBLESTONE.get().defaultBlockState());
+                    mob.level().playSound(null, aheadFeet, SoundEvents.STONE_PLACE, SoundSource.HOSTILE, 0.6F, 1.0F);
+                } else if ((directMode || mob.horizontalCollision) && aheadState.isAir() && Math.abs(yDiff) < 2.0) {
+                    // Bridge over air gaps when stuck OR bumping into terrain at same Y level
+                    mob.level().setBlockAndUpdate(aheadFeet, ModBlocks.EERIE_COBBLESTONE.get().defaultBlockState());
+                    mob.level().playSound(null, aheadFeet, SoundEvents.STONE_PLACE, SoundSource.HOSTILE, 0.6F, 1.0F);
+                }
             }
         }
     }

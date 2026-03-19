@@ -97,8 +97,15 @@ public class SpawnHandler {
             }
         }
     }
+    @SubscribeEvent
+    public static void onPlayerJoin(net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent event) {
+        if (!event.getEntity().level().isClientSide) {
+            playerJoinTicks.put(event.getEntity().getUUID(), 0);
+        }
+    }
 
-    public static void onPlayerLeave(UUID uuid) {
-        playerJoinTicks.remove(uuid);
+    @SubscribeEvent
+    public static void onPlayerLeave(net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerLoggedOutEvent event) {
+        playerJoinTicks.remove(event.getEntity().getUUID());
     }
 }
