@@ -91,25 +91,39 @@ public class DirectChaseGoal extends Goal {
         lastY = mob.getY();
         lastZ = mob.getZ();
 
-        // Enter direct mode if stuck for 1 second (20 ticks)
-        if (stuckTicks > 20 && !directMode) {
+        // Enter direct mode if stuck for 1.5 seconds (30 ticks)
+        if (stuckTicks > 30 && !directMode) {
             directMode = true;
             directModeTicks = 0;
         }
 
-        // Exit direct mode after 3 seconds of direct movement (60 ticks)
+        // Core distance calculations
+        double horizontalDistSq = mob.distanceToSqr(target.getX(), mob.getY(), target.getZ());
+        double yDiff = target.getY() - mob.getY();
+        boolean needsTowering = yDiff >= 1.2 && horizontalDistSq < 64.0 && (directMode || mob.horizontalCollision);
+
+        // Renew direct mode if we still clearly need to tower near the player
         if (directMode) {
             directModeTicks++;
             if (directModeTicks > 60) {
-                directMode = false;
-                stuckTicks = 0;
+                if (needsTowering) {
+                    directModeTicks = 30; // give it more time to keep building
+                } else {
+                    directMode = false;
+                    stuckTicks = 0;
+                }
             }
         }
 
         // --- Movement ---
         if (directMode) {
-            // DIRECT MODE: Walk straight at target, ignoring navmesh
-            mob.getMoveControl().setWantedPosition(target.getX(), target.getY(), target.getZ(), 1.4D);
+            if (needsTowering && (mob.horizontalCollision || horizontalDistSq < 4.0)) {
+                // Lock onto current X/Z to build a perfect vertical pillar without sliding around corners
+                mob.getMoveControl().setWantedPosition(mob.getX(), target.getY(), mob.getZ(), 1.0D);
+            } else {
+                // DIRECT MODE: Walk straight at target, ignoring navmesh
+                mob.getMoveControl().setWantedPosition(target.getX(), target.getY(), target.getZ(), 1.4D);
+            }
 
             // Jump when hitting walls
             if (mob.horizontalCollision && mob.onGround()) {
@@ -141,31 +155,37 @@ public class DirectChaseGoal extends Goal {
         }
 
         // --- Smart Block Placement (ONLY when needed) ---
-        double horizontalDistSq = mob.distanceToSqr(target.getX(), mob.getY(), target.getZ());
-        double yDiff = target.getY() - mob.getY();
-
-        // TOWERING: Player is above and we're close horizontally
-        if (yDiff > 1.5 && horizontalDistSq < 16.0) {
+        // TOWERING: Player is above (more than a normal jump) AND we're stuck OR hitting a wall
+        if (needsTowering) {
             if (mob.onGround()) {
+                // Just jump — we'll place the block when we start falling from the peak
                 mob.getJumpControl().jump();
-            } else if (mob.getDeltaMovement().y > 0) {
-                BlockPos below = mob.blockPosition().below();
-                BlockState state = mob.level().getBlockState(below);
+            } else if (mob.getDeltaMovement().y <= 0.0) {
+                // Airborne and at peak/falling — safely place block below current block space
+                BlockPos placePos = mob.blockPosition().below();
+                BlockState state = mob.level().getBlockState(placePos);
+                
                 if (state.isAir() || state.canBeReplaced()) {
-                    mob.level().setBlockAndUpdate(below, ModBlocks.EERIE_COBBLESTONE.get().defaultBlockState());
-                    mob.level().playSound(null, below, SoundEvents.STONE_PLACE, SoundSource.HOSTILE, 0.6F, 1.0F);
+                    mob.level().setBlockAndUpdate(placePos, ModBlocks.EERIE_COBBLESTONE.get().defaultBlockState());
+                    mob.level().playSound(null, placePos, SoundEvents.STONE_PLACE, SoundSource.HOSTILE, 0.6F, 1.0F);
+                    // Center the mob horizontally on the placed block to prevent falling off while towering
+                    mob.setPos(placePos.getX() + 0.5, mob.getY(), placePos.getZ() + 0.5);
+                    mob.setDeltaMovement(0, mob.getDeltaMovement().y, 0); // Nullify horizontal drift
                 }
             }
-            // Break ceiling if stuck towering
-            BlockPos headPos = BlockPos.containing(mob.getX(), mob.getY() + 2.0, mob.getZ());
-            BlockState headState = mob.level().getBlockState(headPos);
-            if (!headState.isAir() && headState.getDestroySpeed(mob.level(), headPos) >= 0) {
-                mob.level().destroyBlock(headPos, false);
+            // Break ceilings if they block our towering
+            BlockPos headPos1 = mob.blockPosition().above(1);
+            BlockPos headPos2 = mob.blockPosition().above(2);
+            for (BlockPos hp : new BlockPos[]{headPos1, headPos2}) {
+                BlockState hs = mob.level().getBlockState(hp);
+                if (!hs.isAir() && hs.getDestroySpeed(mob.level(), hp) >= 0) {
+                    mob.level().destroyBlock(hp, false);
+                }
             }
         }
 
         // DESCENDING: Player is below, break blocks under our feet to drop down
-        if (yDiff < -2.0 && horizontalDistSq < 16.0) {
+        if (yDiff < -2.0 && horizontalDistSq < 64.0) {
             BlockPos below = mob.blockPosition().below();
             BlockState belowState = mob.level().getBlockState(below);
             if (!belowState.isAir() && belowState.getDestroySpeed(mob.level(), below) >= 0) {
@@ -173,14 +193,20 @@ public class DirectChaseGoal extends Goal {
             }
         }
 
-        // BRIDGING: ONLY over water or lava (not air on normal ground!)
+        // BRIDGING over water/lava: ALWAYS active
+        // BRIDGING over air gaps: ONLY when stuck AND player is at roughly same Y level (not climbing terrain)
+        Vec3 moveDir = target.position().subtract(mob.position()).normalize();
         if (mob.onGround() || mob.isInWater()) {
-            Vec3 moveDir = target.position().subtract(mob.position()).normalize();
             BlockPos aheadFeet = BlockPos.containing(
-                mob.getX() + moveDir.x * 1.5, mob.getY() - 0.5, mob.getZ() + moveDir.z * 1.5);
+                mob.getX() + moveDir.x * 2.0, mob.getY() - 1.0, mob.getZ() + moveDir.z * 2.0);
             BlockState aheadState = mob.level().getBlockState(aheadFeet);
+
             if (aheadState.liquid()) {
-                // Only bridge over water/lava
+                // Always bridge over water/lava
+                mob.level().setBlockAndUpdate(aheadFeet, ModBlocks.EERIE_COBBLESTONE.get().defaultBlockState());
+                mob.level().playSound(null, aheadFeet, SoundEvents.STONE_PLACE, SoundSource.HOSTILE, 0.6F, 1.0F);
+            } else if ((directMode || mob.horizontalCollision) && aheadState.isAir() && Math.abs(yDiff) < 2.0) {
+                // Bridge over air gaps when stuck OR bumping into terrain at same Y level
                 mob.level().setBlockAndUpdate(aheadFeet, ModBlocks.EERIE_COBBLESTONE.get().defaultBlockState());
                 mob.level().playSound(null, aheadFeet, SoundEvents.STONE_PLACE, SoundSource.HOSTILE, 0.6F, 1.0F);
             }
