@@ -19,7 +19,9 @@ public class ModBlocks {
             ITEMS.register("glitched_block", () -> new BlockItem(GLITCHED_BLOCK.get(), new Item.Properties()));
 
     public static final DeferredHolder<Block, Block> EERIE_COBBLESTONE =
-            BLOCKS.register("eerie_cobblestone", () -> new Block(net.minecraft.world.level.block.state.BlockBehaviour.Properties.of().strength(1.5F, 6.0F).requiresCorrectToolForDrops()));
+            BLOCKS.register("eerie_cobblestone", () -> new Block(
+                    net.minecraft.world.level.block.state.BlockBehaviour.Properties.ofFullCopy(
+                            net.minecraft.world.level.block.Blocks.COBBLESTONE)));
 
     public static final DeferredHolder<Item, BlockItem> EERIE_COBBLESTONE_ITEM =
             ITEMS.register("eerie_cobblestone", () -> new BlockItem(EERIE_COBBLESTONE.get(), new Item.Properties()));
