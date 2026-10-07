@@ -64,6 +64,14 @@ public class TheFallenEntity extends Monster implements GeoEntity {
 
     private static final EntityDataAccessor<String> STATE =
             SynchedEntityData.defineId(TheFallenEntity.class, EntityDataSerializers.STRING);
+    /** Synced so the client-side GeckoLib controller sees collapse/charge states. */
+    private static final EntityDataAccessor<Boolean> DATA_RECOVERING =
+            SynchedEntityData.defineId(TheFallenEntity.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Boolean> DATA_CHARGING =
+            SynchedEntityData.defineId(TheFallenEntity.class, EntityDataSerializers.BOOLEAN);
+
+    private boolean lastSyncedRecovering = false;
+    private boolean lastSyncedCharging = false;
 
     public static final String STATE_OBSERVING = "observing";
     public static final String STATE_HUNTING   = "hunting";
@@ -112,6 +120,8 @@ public class TheFallenEntity extends Monster implements GeoEntity {
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
         super.defineSynchedData(builder);
         builder.define(STATE, STATE_OBSERVING);
+        builder.define(DATA_RECOVERING, false);
+        builder.define(DATA_CHARGING, false);
     }
 
     @Override
@@ -135,11 +145,17 @@ public class TheFallenEntity extends Monster implements GeoEntity {
     }
 
     private PlayState animPredicate(AnimationState<TheFallenEntity> state) {
-        if (isRecovering) {
+        // Server logic writes plain booleans; the client copy only sees them
+        // via synced entity data — read the right source per side.
+        boolean recovering = this.level().isClientSide
+                ? this.entityData.get(DATA_RECOVERING) : this.isRecovering;
+        boolean charging = this.level().isClientSide
+                ? this.entityData.get(DATA_CHARGING) : this.isChargingJumpscare;
+        if (recovering) {
             return state.setAndContinue(RawAnimation.begin()
                     .then("animation.the_fallen.fake_death", Animation.LoopType.HOLD_ON_LAST_FRAME));
         }
-        if (isChargingJumpscare) {
+        if (charging) {
             return state.setAndContinue(RawAnimation.begin()
                     .then("animation.the_fallen.jumpscare", Animation.LoopType.PLAY_ONCE));
         }
@@ -271,6 +287,18 @@ public class TheFallenEntity extends Monster implements GeoEntity {
         // Advance shadow-phase cooldown
         if (shadowPhaseCooldown > 0) shadowPhaseCooldown--;
 
+        // Mirror collapse/charge flags to the client for the anim controller
+        if (!this.level().isClientSide) {
+            if (lastSyncedRecovering != isRecovering) {
+                this.entityData.set(DATA_RECOVERING, isRecovering);
+                lastSyncedRecovering = isRecovering;
+            }
+            if (lastSyncedCharging != isChargingJumpscare) {
+                this.entityData.set(DATA_CHARGING, isChargingJumpscare);
+                lastSyncedCharging = isChargingJumpscare;
+            }
+        }
+
         // --- Fake-Death Recovery ---
         if (isRecovering) {
             recoveryTicks--;
@@ -372,6 +400,10 @@ public class TheFallenEntity extends Monster implements GeoEntity {
                                 sign.getFrontText().setMessage(0, net.minecraft.network.chat.Component.literal(
                                     msgs[this.random.nextInt(msgs.length)]));
                                 sign.setChanged();
+                                // Push the text to clients — setChanged() alone only marks
+                                // the chunk dirty for saving, it does NOT sync the BE.
+                                BlockState placed = this.level().getBlockState(ePos);
+                                this.level().sendBlockUpdated(ePos, placed, placed, 3);
                             }
                         }
                     }

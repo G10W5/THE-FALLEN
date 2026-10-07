@@ -3,10 +3,17 @@ package com.glow.thefallen;
 import net.minecraft.core.BlockPos;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.projectile.ProjectileUtil;
+import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.EntityHitResult;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.EnumSet;
@@ -119,11 +126,29 @@ public class GlitchEventGoal extends Goal {
         cooldown = 200;
     }
 
+    /**
+     * Precise crosshair test: returns true only if a ray cast from the player's
+     * eyes along the look vector actually hits the Observer within 64 blocks,
+     * with no solid block in between. Invisible stalkers never count.
+     */
     private boolean isDirectEyeContact() {
-        if (!target.hasLineOfSight(mob)) return false;
-        Vec3 toEntity  = mob.getEyePosition().subtract(target.getEyePosition()).normalize();
-        Vec3 playerLook = target.getLookAngle().normalize();
-        return toEntity.dot(playerLook) > 0.97;
+        if (target == null || mob.isInvisible()) return false;
+        Vec3 eye = target.getEyePosition();
+        Vec3 look = target.getLookAngle().normalize();
+        Vec3 end = eye.add(look.scale(64.0D));
+        AABB search = target.getBoundingBox().expandTowards(look.scale(64.0D)).inflate(1.0D);
+        EntityHitResult entityHit = ProjectileUtil.getEntityHitResult(
+                target, eye, end, search, e -> e == mob, 0.0F);
+        if (entityHit == null || entityHit.getEntity() != mob) return false;
+        // Reject if a wall is between player and entity
+        BlockHitResult blockHit = target.level().clip(
+                new ClipContext(eye, end, ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, target));
+        if (blockHit.getType() != HitResult.Type.MISS
+                && blockHit.getLocation().distanceToSqr(eye)
+                        < entityHit.getLocation().distanceToSqr(eye)) {
+            return false;
+        }
+        return true;
     }
 
     private void corruptBlocks(Level level) {
