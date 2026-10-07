@@ -77,6 +77,9 @@ public class TheFallenEntity extends Monster implements GeoEntity {
     private static final EntityDataAccessor<Boolean> DATA_SHOW_SCARE =
             SynchedEntityData.defineId(TheFallenEntity.class, EntityDataSerializers.BOOLEAN);
 
+    /** Yaw frozen at collapse so the corpse can't be swiveled by look goals. */
+    private float deathYaw = 0.0F;
+
     private boolean lastSyncedRecovering = false;
     private boolean lastSyncedCharging = false;
 
@@ -165,6 +168,13 @@ public class TheFallenEntity extends Monster implements GeoEntity {
                     .then("animation.the_fallen.fake_death", Animation.LoopType.HOLD_ON_LAST_FRAME));
         }
         if (charging) {
+            // Sprint at the victim with the run cycle; snap into the lunge
+            // pose only in the final meters before contact.
+            Player nearest = this.level().getNearestPlayer(this, 6.0D);
+            if (nearest == null) {
+                return state.setAndContinue(RawAnimation.begin()
+                        .then("animation.the_fallen.run", Animation.LoopType.LOOP));
+            }
             return state.setAndContinue(RawAnimation.begin()
                     .then("animation.the_fallen.jumpscare", Animation.LoopType.PLAY_ONCE));
         }
@@ -294,6 +304,7 @@ public class TheFallenEntity extends Monster implements GeoEntity {
         this.setInvisible(false);
         this.setInvulnerable(true);
         this.getNavigation().stop();
+        this.deathYaw = this.getYRot();
         this.setHealth(100.0F); // Restore health silently
     }
 
@@ -332,6 +343,11 @@ public class TheFallenEntity extends Monster implements GeoEntity {
             this.setInvulnerable(true);
             this.getNavigation().stop();
             this.setTarget(null);
+            // Pin the corpse: no drift, no push-rotation (look goals still tick)
+            this.setYRot(deathYaw);
+            this.yHeadRot = deathYaw;
+            this.yBodyRot = deathYaw;
+            this.setXRot(0.0F);
             this.setDeltaMovement(0, this.getDeltaMovement().y, 0);
             if (recoveryTicks <= 0) {
                 isRecovering = false;
@@ -588,7 +604,19 @@ public class TheFallenEntity extends Monster implements GeoEntity {
 
     @Override public boolean removeWhenFarAway(double d) { return false; }
     @Override public boolean isPushable()                { return false; }
-    @Override public boolean canBeCollidedWith()         { return !isObserving(); }
+
+    /**
+     * Walk-through corpse: while fake-dead nothing collides with the body
+     * (players pass through instead of getting stuck on it) and it can't be
+     * punched/targeted. Reads the synced flag so both sides agree.
+     */
+    @Override
+    public boolean canBeCollidedWith() {
+        if (isObserving()) return false;
+        boolean dead = this.level().isClientSide
+                ? this.entityData.get(DATA_RECOVERING) : this.isRecovering;
+        return !dead;
+    }
 
     @Override
     public void addAdditionalSaveData(CompoundTag compound) {

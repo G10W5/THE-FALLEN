@@ -85,10 +85,12 @@ public class GlitchEventGoal extends Goal {
 
         mob.getLookControl().setLookAt(target, 30.0F, 30.0F);
 
-        // Eerie whistling bait while he stands there waiting to be looked at
+        // Eerie whistling bait while he stands there waiting to be looked at.
+        // Loud volume carries it across the area; stereo/distance falloff
+        // still tells the player which direction it's coming from.
         if (glitchTicks % 60 == 0) {
             mob.level().playSound(null, mob.getX(), mob.getY(), mob.getZ(),
-                    ModSounds.WHISTLE.get(), SoundSource.HOSTILE, 1.2F, 1.0F);
+                    ModSounds.WHISTLE.get(), SoundSource.HOSTILE, 4.0F, 1.0F);
         }
 
         if (phase == Phase.WAITING && isDirectEyeContact()) {
