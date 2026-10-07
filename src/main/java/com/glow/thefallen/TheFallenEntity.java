@@ -76,6 +76,9 @@ public class TheFallenEntity extends Monster implements GeoEntity {
      */
     private static final EntityDataAccessor<Boolean> DATA_SHOW_SCARE =
             SynchedEntityData.defineId(TheFallenEntity.class, EntityDataSerializers.BOOLEAN);
+    /** True while the glitch bait is running — drives the client whistle loop. */
+    private static final EntityDataAccessor<Boolean> DATA_WHISTLING =
+            SynchedEntityData.defineId(TheFallenEntity.class, EntityDataSerializers.BOOLEAN);
 
     /** Yaw frozen at collapse so the corpse can't be swiveled by look goals. */
     private float deathYaw = 0.0F;
@@ -134,6 +137,7 @@ public class TheFallenEntity extends Monster implements GeoEntity {
         builder.define(DATA_RECOVERING, false);
         builder.define(DATA_CHARGING, false);
         builder.define(DATA_SHOW_SCARE, false);
+        builder.define(DATA_WHISTLING, false);
     }
 
     @Override
@@ -210,6 +214,16 @@ public class TheFallenEntity extends Monster implements GeoEntity {
     /** Client: is the face-flash signal currently up? */
     public boolean isShowingScare() {
         return this.entityData.get(DATA_SHOW_SCARE);
+    }
+
+    /** Client: is the whistle bait currently running? */
+    public boolean isWhistling() {
+        return this.entityData.get(DATA_WHISTLING);
+    }
+
+    /** Server: toggle the whistle bait flag. */
+    public void setWhistling(boolean whistling) {
+        if (!this.level().isClientSide) this.entityData.set(DATA_WHISTLING, whistling);
     }
 
     // =========================================================

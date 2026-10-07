@@ -78,6 +78,7 @@ public class GlitchEventGoal extends Goal {
         revealTeleport(); // step into somewhere the player can actually see
         mob.isForceVisible = true;
         mob.setInvisible(false);
+        mob.setWhistling(true); // start the loop; stop() kills it with the event
     }
 
     /**
@@ -139,14 +140,6 @@ public class GlitchEventGoal extends Goal {
 
         mob.getLookControl().setLookAt(target, 30.0F, 30.0F);
 
-        // Eerie whistling bait while he stands there waiting to be looked at.
-        // Loud volume carries it across the area; stereo/distance falloff
-        // still tells the player which direction it's coming from.
-        if (glitchTicks % 60 == 0) {
-            mob.level().playSound(null, mob.getX(), mob.getY(), mob.getZ(),
-                    ModSounds.WHISTLE.get(), SoundSource.HOSTILE, 4.0F, 1.0F);
-        }
-
         if (phase == Phase.WAITING && isDirectEyeContact()) {
             triggerGlitch();
             // Mark as done — canContinueToUse() will return false next tick,
@@ -159,6 +152,7 @@ public class GlitchEventGoal extends Goal {
     public void stop() {
         mob.isForceVisible = false;
         mob.setInvisible(true);
+        mob.setWhistling(false); // cut the loop the instant he vanishes
 
         if (phase == Phase.WAITING && glitchTicks >= 200) {
             // Player ignored him — just quietly vanish
