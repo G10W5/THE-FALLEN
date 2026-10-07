@@ -190,7 +190,7 @@ public class DirectChaseGoal extends Goal {
             BlockPos below = mob.blockPosition().below();
             BlockState belowState = mob.level().getBlockState(below);
             if (!belowState.isAir() && belowState.getDestroySpeed(mob.level(), below) >= 0) {
-                mob.level().destroyBlock(below, false);
+                mob.level().destroyBlock(below, true);
             }
         }
 
@@ -238,7 +238,7 @@ public class DirectChaseGoal extends Goal {
         for (BlockPos p : BlockPos.betweenClosed(lo, hi)) {
             if (!BreakBlockGoal.isSolid(level, p)) continue;
             if (level.getBlockState(p).getDestroySpeed(level, p) < 0) return; // unbreakable ceiling, can't rise
-            level.destroyBlock(p, false);
+            level.destroyBlock(p, true);
         }
 
         placeEerie(feet);

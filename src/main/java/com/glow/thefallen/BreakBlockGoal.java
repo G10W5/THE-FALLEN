@@ -110,7 +110,7 @@ public class BreakBlockGoal extends Goal {
         if (breakTime >= BREAK_DURATION) {
             Level level = mob.level();
             BlockState state = level.getBlockState(crackPos);
-            level.destroyBlock(crackPos, false); // Don't drop items normally
+            level.destroyBlock(crackPos, true); // Drop the block as an item
 
             // "The Rip": spawn a FallingBlockEntity with upward velocity
             if (!level.isClientSide) {
