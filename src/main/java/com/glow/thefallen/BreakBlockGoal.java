@@ -66,7 +66,8 @@ public class BreakBlockGoal extends Goal {
 
     @Override
     public boolean canContinueToUse() {
-        return mob.isHunting() && !mob.isRecovering && findObstacle() != null;
+        return mob.isHunting() && !mob.isRecovering
+                && (findObstacle() != null || (crackPos != null && stillBreakable(crackPos)));
     }
 
     @Override
@@ -79,7 +80,16 @@ public class BreakBlockGoal extends Goal {
     @Override
     public void tick() {
         BlockPos pos = findObstacle();
-        if (pos == null) return;
+        if (pos == null) {
+            // Grace: keep hammering the current block if it's still valid.
+            // Covers sliding past door frames or diagonal approaches where the
+            // facing-column scan momentarily misses but the crack is still in reach.
+            if (crackPos != null && stillBreakable(crackPos)) {
+                pos = crackPos;
+            } else {
+                return;
+            }
+        }
 
         // Switched to a different block: restart the crack animation
         if (!pos.equals(crackPos)) {
@@ -157,13 +167,13 @@ public class BreakBlockGoal extends Goal {
         return !isSolid(level, feet.above(h)); // headroom for the jump
     }
 
-    /** First breakable, solid block in front of the mob across its full height. */
+    /** First breakable, solid block in front of the mob across its full height (+1 for grade steps). */
     private BlockPos findObstacle() {
         Level level = mob.level();
         BlockPos front = mob.blockPosition().relative(mob.getDirection());
         int h = mobHeightBlocks();
 
-        for (int i = 0; i < h; i++) {
+        for (int i = 0; i <= h; i++) {
             BlockPos p = front.above(i);
             if (!isSolid(level, p)) continue; // air, grass, flowers, water...
             BlockState state = level.getBlockState(p);
@@ -173,6 +183,21 @@ public class BreakBlockGoal extends Goal {
             return p;
         }
         return null;
+    }
+
+    /**
+     * True while a previously started crack is still worth hammering: close,
+     * still solid (a broken door bottom pops its top half, which then reads
+     * non-solid and ends the goal cleanly), breakable and not protected.
+     */
+    private boolean stillBreakable(BlockPos pos) {
+        Level level = mob.level();
+        if (mob.distanceToSqr(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5) > 20.25D) return false;
+        if (!isSolid(level, pos)) return false;
+        BlockState state = level.getBlockState(pos);
+        if (isBlacklisted(state)) return false;
+        if (state.is(ModBlocks.GLITCHED_BLOCK.get())) return false;
+        return state.getDestroySpeed(level, pos) >= 0;
     }
 
     private boolean isBlacklisted(BlockState state) {

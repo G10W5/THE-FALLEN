@@ -92,24 +92,35 @@ public class FakeChargeGoal extends Goal {
         mob.getLookControl().setLookAt(target, 30.0F, 30.0F);
         mob.getNavigation().moveTo(target, 1.5D);
 
+        // Hard camera lock: re-face the player at the entity every tick so
+        // looking away mid-charge is impossible
+        if (target instanceof net.minecraft.server.level.ServerPlayer serverPlayer) {
+            serverPlayer.lookAt(net.minecraft.commands.arguments.EntityAnchorArgument.Anchor.EYES, mob.getEyePosition());
+        }
+
         // Contact check: within 2 blocks → vanish NOW
         if (mob.distanceToSqr(target) < 4.0D) { // 2^2 = 4
-            vanish();
+            vanish(true);
         }
     }
 
     @Override
     public void stop() {
         // Called if the goal was interrupted or the 200-tick limit was hit
-        vanish();
+        vanish(false);
     }
 
     // ---- Internal helpers ----
 
-    private void vanish() {
+    private void vanish(boolean touched) {
         if (hasVanished) return; // idempotent
         hasVanished = true;
         charging = false;
+
+        // Face-flash only on real contact, not on timeouts/interrupts
+        if (touched) {
+            mob.triggerJumpscareFlag();
+        }
 
         // Poof sound centered on the player so it's loud
         if (target != null) {

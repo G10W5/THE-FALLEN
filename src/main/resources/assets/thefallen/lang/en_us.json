@@ -1,5 +1,20 @@
 {
   "entity.thefallen.the_fallen": "The Fallen",
   "block.thefallen.glitched_block": "Glitched Block",
-  "item.thefallen.glitched_block": "Glitched Block"
+  "item.thefallen.glitched_block": "Glitched Block",
+  "block.thefallen.eerie_cobblestone": "Eerie Cobblestone",
+  "item.thefallen.eerie_cobblestone": "Eerie Cobblestone",
+  "block.thefallen.eerie_torch": "Eerie Torch",
+  "item.thefallen.eerie_torch": "Eerie Torch",
+  "subtitles.thefallen.whisper": "Whispering",
+  "subtitles.thefallen.scream": "Shrieking",
+  "subtitles.thefallen.humming": "Humming",
+  "subtitles.thefallen.roof_crack": "Stone cracking",
+  "subtitles.thefallen.sunrise_vanish": "Vanishing",
+  "subtitles.thefallen.echo_step": "Echoing steps",
+  "subtitles.thefallen.glitch_explosion": "Reality glitching",
+  "subtitles.thefallen.phantom_step": "Footsteps",
+  "subtitles.thefallen.fake_death": "Collapsing",
+  "subtitles.thefallen.resurrection": "Rising again",
+  "subtitles.thefallen.whistle": "Creepy whistling"
 }

@@ -29,6 +29,8 @@ public class ModSounds {
     public static final DeferredHolder<SoundEvent, SoundEvent> MIMICRY_CHEST  = registerSound("mimicry_chest");
     /** Mimicry: distorted player hurt sound */
     public static final DeferredHolder<SoundEvent, SoundEvent> MIMICRY_HURT   = registerSound("mimicry_hurt");
+    /** Eerie whistling while the Observer waits to be looked at */
+    public static final DeferredHolder<SoundEvent, SoundEvent> WHISTLE        = registerSound("creepy_whistle");
     /** Played when the Hunter fake-dies and collapses */
     public static final DeferredHolder<SoundEvent, SoundEvent> FAKE_DEATH     = registerSound("fake_death");
     /** Played when the Hunter reappears after fake-death */

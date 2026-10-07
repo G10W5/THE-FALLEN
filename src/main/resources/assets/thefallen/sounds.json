@@ -67,6 +67,11 @@
       { "name": "minecraft:entity/player/hurt2", "pitch": 0.5 }
     ]
   },
+  "creepy_whistle": {
+    "category": "hostile",
+    "subtitle": "subtitles.thefallen.whistle",
+    "sounds": [ "thefallen:creepy_whistle" ]
+  },
   "fake_death": {
     "category": "hostile",
     "subtitle": "subtitles.thefallen.fake_death",

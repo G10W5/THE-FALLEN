@@ -69,6 +69,13 @@ public class TheFallenEntity extends Monster implements GeoEntity {
             SynchedEntityData.defineId(TheFallenEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Boolean> DATA_CHARGING =
             SynchedEntityData.defineId(TheFallenEntity.class, EntityDataSerializers.BOOLEAN);
+    /**
+     * One-shot jumpscare signal: server sets it when the glitch eye-contact
+     * resolves or a charge connects; client overlay shows the face flash.
+     * Auto-clears after SHOW_SCARE_TICKS via tick countdown below.
+     */
+    private static final EntityDataAccessor<Boolean> DATA_SHOW_SCARE =
+            SynchedEntityData.defineId(TheFallenEntity.class, EntityDataSerializers.BOOLEAN);
 
     private boolean lastSyncedRecovering = false;
     private boolean lastSyncedCharging = false;
@@ -99,7 +106,8 @@ public class TheFallenEntity extends Monster implements GeoEntity {
 
     // --- Timers ---
     private int structureSpawnCooldown = 12000;
-    private int effectStartupDelay     = 3600;
+    /** Counts down the jumpscare face-flash signal on the server. */
+    private int showScareTicks = 0;    private int effectStartupDelay     = 3600;
     /** Cooldown between ambient mimicry/footstep plays (randomised per event). */
     private int ambientSoundCooldown   = 200;
 
@@ -122,6 +130,7 @@ public class TheFallenEntity extends Monster implements GeoEntity {
         builder.define(STATE, STATE_OBSERVING);
         builder.define(DATA_RECOVERING, false);
         builder.define(DATA_CHARGING, false);
+        builder.define(DATA_SHOW_SCARE, false);
     }
 
     @Override
@@ -179,6 +188,18 @@ public class TheFallenEntity extends Monster implements GeoEntity {
     @Override
     public AnimatableInstanceCache getAnimatableInstanceCache() {
         return geoCache;
+    }
+
+    /** Server: raise the jumpscare face-flash signal for ~2.5 s. */
+    public void triggerJumpscareFlag() {
+        if (this.level().isClientSide) return;
+        this.entityData.set(DATA_SHOW_SCARE, true);
+        this.showScareTicks = 50;
+    }
+
+    /** Client: is the face-flash signal currently up? */
+    public boolean isShowingScare() {
+        return this.entityData.get(DATA_SHOW_SCARE);
     }
 
     // =========================================================
@@ -286,6 +307,11 @@ public class TheFallenEntity extends Monster implements GeoEntity {
 
         // Advance shadow-phase cooldown
         if (shadowPhaseCooldown > 0) shadowPhaseCooldown--;
+
+        // Auto-clear the jumpscare signal
+        if (!this.level().isClientSide && showScareTicks > 0) {
+            if (--showScareTicks <= 0) this.entityData.set(DATA_SHOW_SCARE, false);
+        }
 
         // Mirror collapse/charge flags to the client for the anim controller
         if (!this.level().isClientSide) {

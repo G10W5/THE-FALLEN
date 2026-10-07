@@ -6,13 +6,7 @@ import com.glow.thefallen.TheFallenMod;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.entity.projectile.ProjectileUtil;
-import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.AABB;
-import net.minecraft.world.phys.BlockHitResult;
-import net.minecraft.world.phys.EntityHitResult;
-import net.minecraft.world.phys.HitResult;
-import net.minecraft.world.phys.Vec3;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -22,13 +16,12 @@ import net.neoforged.neoforge.client.event.ClientTickEvent;
 import java.util.List;
 
 /**
- * Client-side look-triggered jumpscare.
+ * Client-side jumpscare face-flash.
  *
- * How it works: every few client ticks, checks whether the local player is
- * looking directly at a VISIBLE TheFallenEntity within range (mirrors the
- * server-side eye-contact test in GlitchEventGoal). On trigger, shows a
- * fullscreen face overlay with jitter + red flash for ~2 seconds and plays
- * the scream locally. No packets needed — purely presentational.
+ * Fully event-driven: the server raises a synced flag on the entity exactly
+ * when the glitch eye-contact resolves or a charge connects, and this overlay
+ * shows the fullscreen face for ~2 seconds. It never self-triggers on look
+ * direction, so no random pop-ins.
  */
 @EventBusSubscriber(modid = TheFallenMod.MODID, value = Dist.CLIENT)
 public class JumpscareOverlay {
@@ -36,9 +29,9 @@ public class JumpscareOverlay {
     private static final ResourceLocation FACE =
             ResourceLocation.fromNamespaceAndPath(TheFallenMod.MODID, "textures/gui/jumpscare.png");
 
-    private static final double RANGE = 24.0D;
+    private static final double RANGE = 64.0D;
     private static final int DURATION_TICKS = 40;
-    private static final int COOLDOWN_TICKS = 3600; // 3 min between scares
+    private static final int COOLDOWN_TICKS = 1200; // 1 min between flashes
 
     private static int activeTicks = 0;
     private static int cooldownTicks = 0;
@@ -62,31 +55,17 @@ public class JumpscareOverlay {
         tickCounter++;
         if (tickCounter % 5 != 0) return;
 
+        // Event-driven: the server raises the flag exactly when the glitch
+        // eye-contact resolves or a charge connects. No independent
+        // look-detection here, so no random pop-ins.
         AABB search = mc.player.getBoundingBox().inflate(RANGE);
         List<TheFallenEntity> entities = mc.level.getEntitiesOfClass(TheFallenEntity.class, search);
-        if (entities.isEmpty()) return;
-
-        // Extended crosshair test: only fires when the crosshair ray from the
-        // player's eyes actually strikes the entity (no wall in between).
-        // Vanilla crosshair only reaches ~3 blocks, so this replicates it at
-        // mod range instead of using a loose look-direction cone.
-        Vec3 eye = mc.player.getEyePosition();
-        Vec3 look = mc.player.getLookAngle().normalize();
-        Vec3 end = eye.add(look.scale(RANGE));
-        AABB rayBox = mc.player.getBoundingBox().expandTowards(look.scale(RANGE)).inflate(1.0D);
-        EntityHitResult entityHit = ProjectileUtil.getEntityHitResult(
-                mc.player, eye, end, rayBox,
-                e -> e instanceof TheFallenEntity f && f.isAlive() && !f.isInvisible(), 0.0F);
-        if (entityHit == null || !(entityHit.getEntity() instanceof TheFallenEntity)) return;
-
-        BlockHitResult blockHit = mc.level.clip(
-                new ClipContext(eye, end, ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, mc.player));
-        if (blockHit.getType() != HitResult.Type.MISS
-                && blockHit.getLocation().distanceToSqr(eye)
-                        < entityHit.getLocation().distanceToSqr(eye)) {
-            return;
+        for (TheFallenEntity entity : entities) {
+            if (entity.isShowingScare()) {
+                trigger();
+                break;
+            }
         }
-        trigger();
     }
 
     private static void trigger() {

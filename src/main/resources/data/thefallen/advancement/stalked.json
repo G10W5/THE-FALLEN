@@ -10,6 +10,7 @@
       "text": "The Observer has noticed you."
     },
     "frame": "task",
+    "background": "thefallen:textures/block/glitched_block.png",
     "show_toast": true,
     "announce_to_chat": true,
     "hidden": false

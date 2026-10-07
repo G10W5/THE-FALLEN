@@ -85,6 +85,12 @@ public class GlitchEventGoal extends Goal {
 
         mob.getLookControl().setLookAt(target, 30.0F, 30.0F);
 
+        // Eerie whistling bait while he stands there waiting to be looked at
+        if (glitchTicks % 60 == 0) {
+            mob.level().playSound(null, mob.getX(), mob.getY(), mob.getZ(),
+                    ModSounds.WHISTLE.get(), SoundSource.HOSTILE, 1.2F, 1.0F);
+        }
+
         if (phase == Phase.WAITING && isDirectEyeContact()) {
             triggerGlitch();
             // Mark as done — canContinueToUse() will return false next tick,
@@ -122,7 +128,10 @@ public class GlitchEventGoal extends Goal {
         // 3. Block corruption around the Observer
         corruptBlocks(level);
 
-        // 4. Cooldown before this can fire again
+        // 4. Face-flash: the player earned this look
+        mob.triggerJumpscareFlag();
+
+        // 5. Cooldown before this can fire again
         cooldown = 200;
     }
 
