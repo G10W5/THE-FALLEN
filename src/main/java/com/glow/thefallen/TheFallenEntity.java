@@ -11,6 +11,16 @@ import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
+import software.bernie.geckolib.animatable.GeoEntity;
+import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.animation.AnimatableManager;
+import software.bernie.geckolib.animation.Animation;
+import software.bernie.geckolib.animation.AnimationController;
+import software.bernie.geckolib.animation.AnimationState;
+import software.bernie.geckolib.animation.PlayState;
+import software.bernie.geckolib.animation.RawAnimation;
+import software.bernie.geckolib.util.GeckoLibUtil;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
@@ -43,11 +53,14 @@ import java.util.Optional;
  *
  * New mechanics:
  * - Shadow Phase: On being hit, teleports 5 blocks behind attacker with smoke.
- * - Fake Death: At ≤50 health (25 hearts), pretends to die for 30 seconds then resurges.
+ * - Fake Death: At ≤50 health (25 hearts), collapses visibly for 30 seconds
+ *   (invulnerable, passive) then resurges.
  * - Ambient Mimicry: Plays distorted vanilla sounds near the player.
  * - Cave-Only Light Sabotage: Only destroys torches/lanterns in darkness (sky light = 0).
  */
-public class TheFallenEntity extends Monster {
+public class TheFallenEntity extends Monster implements GeoEntity {
+
+    private final AnimatableInstanceCache geoCache = GeckoLibUtil.createInstanceCache(this);
 
     private static final EntityDataAccessor<String> STATE =
             SynchedEntityData.defineId(TheFallenEntity.class, EntityDataSerializers.STRING);
@@ -114,6 +127,42 @@ public class TheFallenEntity extends Monster {
         // Shared
         this.goalSelector.addGoal(3, new LookAtPlayerGoal(this, Player.class, 64.0F));
         this.targetSelector.addGoal(1, new NearestAttackableTargetGoal<>(this, Player.class, false));
+    }
+
+    @Override
+    public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
+        controllers.add(new AnimationController<>(this, "main", 5, this::animPredicate));
+    }
+
+    private PlayState animPredicate(AnimationState<TheFallenEntity> state) {
+        if (isRecovering) {
+            return state.setAndContinue(RawAnimation.begin()
+                    .then("animation.the_fallen.fake_death", Animation.LoopType.HOLD_ON_LAST_FRAME));
+        }
+        if (isChargingJumpscare) {
+            return state.setAndContinue(RawAnimation.begin()
+                    .then("animation.the_fallen.jumpscare", Animation.LoopType.PLAY_ONCE));
+        }
+        LivingEntity target = this.getTarget();
+        if (target != null && target.isAlive() && this.distanceToSqr(target) < 9.0D) {
+            return state.setAndContinue(RawAnimation.begin()
+                    .then("animation.the_fallen.attack", Animation.LoopType.PLAY_ONCE));
+        }
+        if (state.isMoving()) {
+            if (isHunting()) {
+                return state.setAndContinue(RawAnimation.begin()
+                        .then("animation.the_fallen.run", Animation.LoopType.LOOP));
+            }
+            return state.setAndContinue(RawAnimation.begin()
+                    .then("animation.the_fallen.walk", Animation.LoopType.LOOP));
+        }
+        return state.setAndContinue(RawAnimation.begin()
+                .then("animation.the_fallen.idle", Animation.LoopType.LOOP));
+    }
+
+    @Override
+    public AnimatableInstanceCache getAnimatableInstanceCache() {
+        return geoCache;
     }
 
     // =========================================================
@@ -203,7 +252,9 @@ public class TheFallenEntity extends Monster {
         this.level().playSound(null, getX(), getY(), getZ(),
                 ModSounds.FAKE_DEATH.get(), SoundSource.HOSTILE, 2.0F, 1.0F);
 
-        this.setInvisible(true);
+        // Visible collapse: the body falls (fake_death anim) and lies on the
+        // ground for 30 s. Stays invulnerable + passive while "dead".
+        this.setInvisible(false);
         this.setInvulnerable(true);
         this.getNavigation().stop();
         this.setHealth(100.0F); // Restore health silently
@@ -223,7 +274,7 @@ public class TheFallenEntity extends Monster {
         // --- Fake-Death Recovery ---
         if (isRecovering) {
             recoveryTicks--;
-            this.setInvisible(true);
+            this.setInvisible(false); // corpse stays visible while "dead"
             this.setInvulnerable(true);
             this.getNavigation().stop();
             this.setTarget(null);

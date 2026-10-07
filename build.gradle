@@ -11,6 +11,10 @@ group = 'com.glow.thefallen'
 
 repositories {
     mavenLocal()
+    maven {
+        name = 'GeckoLib'
+        url 'https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/'
+    }
 }
 
 base {
@@ -60,7 +64,12 @@ neoForge {
 sourceSets.main.resources { srcDir 'src/generated/resources' }
 
 dependencies {
-    // Example: compileOnly "com.example:library:1.0"
+    jarJar(implementation("software.bernie.geckolib:geckolib-neoforge-1.21.1:4.7.6")) {
+        version {
+            strictly '[4.7, 4.8)'
+            prefer '4.7.6'
+        }
+    }
 }
 
 tasks.withType(JavaCompile).configureEach {

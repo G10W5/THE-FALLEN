@@ -1,35 +1,28 @@
 package com.glow.thefallen.client;
 
 import com.glow.thefallen.TheFallenEntity;
-import com.glow.thefallen.TheFallenMod;
-import net.minecraft.client.model.HumanoidModel;
-import net.minecraft.client.model.geom.ModelLayers;
+import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
-import net.minecraft.client.renderer.entity.HumanoidMobRenderer;
-import net.minecraft.resources.ResourceLocation;
+import software.bernie.geckolib.renderer.GeoEntityRenderer;
 
 /**
- * Renderer for TheFallenEntity using a Player (Humanoid) model.
- * Swaps texture based on entity state:
- * - OBSERVING: Pure black (observer.png)
- * - HUNTING:   Pure white (fallen.png)
+ * GeckoLib renderer for TheFallenEntity.
+ * Model is 44 units tall (~2.75 blocks); scaled to ~2 blocks to match gameplay.
+ * Skips rendering while invisible (Observer stalk / flicker gaps / fake-death).
  */
-public class TheFallenRenderer extends HumanoidMobRenderer<TheFallenEntity, HumanoidModel<TheFallenEntity>> {
-
-    private static final ResourceLocation TEXTURE_OBSERVER =
-            ResourceLocation.fromNamespaceAndPath(TheFallenMod.MODID, "textures/entity/observer.png");
-    private static final ResourceLocation TEXTURE_FALLEN =
-            ResourceLocation.fromNamespaceAndPath(TheFallenMod.MODID, "textures/entity/fallen.png");
+public class TheFallenRenderer extends GeoEntityRenderer<TheFallenEntity> {
 
     public TheFallenRenderer(EntityRendererProvider.Context context) {
-        super(context, new HumanoidModel<>(context.bakeLayer(ModelLayers.PLAYER)), 0.5F);
+        super(context, new TheFallenModel());
+        this.shadowRadius = 0.5F;
+        this.withScale(0.75F);
     }
 
     @Override
-    public ResourceLocation getTextureLocation(TheFallenEntity entity) {
-        if (entity.isHunting()) {
-            return TEXTURE_FALLEN;
-        }
-        return TEXTURE_OBSERVER;
+    public void render(TheFallenEntity entity, float entityYaw, float partialTick,
+                       PoseStack poseStack, MultiBufferSource bufferSource, int packedLight) {
+        if (entity.isInvisible()) return;
+        super.render(entity, entityYaw, partialTick, poseStack, bufferSource, packedLight);
     }
 }
