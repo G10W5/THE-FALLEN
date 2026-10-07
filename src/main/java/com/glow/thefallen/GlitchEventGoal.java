@@ -10,6 +10,7 @@ import net.minecraft.world.entity.projectile.ProjectileUtil;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.EntityHitResult;
@@ -74,8 +75,61 @@ public class GlitchEventGoal extends Goal {
         phase = Phase.WAITING;
         glitchTicks = 0;
         mob.getNavigation().stop();
+        revealTeleport(); // step into somewhere the player can actually see
         mob.isForceVisible = true;
         mob.setInvisible(false);
+    }
+
+    /**
+     * Teleports the Observer to a ground spot 18-28 blocks from the player,
+     * biased into the player's current view cone, with verified mutual line
+     * of sight (no hills/walls between). Falls back to the current position
+     * if nothing valid is found (e.g. deep caves), so the event still runs
+     * instead of erroring out.
+     */
+    private void revealTeleport() {
+        Level level = mob.level();
+        Vec3 playerEye = target.getEyePosition();
+        Vec3 look = target.getLookAngle().normalize();
+        double baseAngle = Math.atan2(look.z, look.x);
+
+        for (int attempt = 0; attempt < 16; attempt++) {
+            // First 10 tries: inside the view cone. Last 6: any direction.
+            double angle;
+            if (attempt < 10) {
+                angle = baseAngle + (mob.getRandom().nextDouble() - 0.5) * (Math.PI * 2.0D / 3.0D);
+            } else {
+                angle = mob.getRandom().nextDouble() * Math.PI * 2.0D;
+            }
+            double dist = 18.0D + mob.getRandom().nextDouble() * 10.0D;
+
+            double x = target.getX() + Math.cos(angle) * dist;
+            double z = target.getZ() + Math.sin(angle) * dist;
+            BlockPos ground = level.getHeightmapPos(
+                    Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, BlockPos.containing(x, 0, z));
+            BlockPos feet = ground.above();
+
+            // Headroom: feet, +1, +2 must be free of solid blocks and fluids
+            boolean free = true;
+            for (int i = 0; i < 3; i++) {
+                BlockPos p = feet.above(i);
+                if (!level.getBlockState(p).getCollisionShape(level, p).isEmpty()
+                        || !level.getFluidState(p).isEmpty()) {
+                    free = false;
+                    break;
+                }
+            }
+            if (!free) continue;
+
+            Vec3 mobEye = new Vec3(feet.getX() + 0.5D, feet.getY() + 1.62D, feet.getZ() + 0.5D);
+            BlockHitResult ray = level.clip(
+                    new ClipContext(playerEye, mobEye, ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, target));
+            if (ray.getType() != HitResult.Type.MISS) continue; // hill/wall in between
+
+            mob.teleportTo(feet.getX() + 0.5D, feet.getY(), feet.getZ() + 0.5D);
+            return;
+        }
+        // Fallback: stay where we are; the wait may simply expire unseen.
     }
 
     @Override
